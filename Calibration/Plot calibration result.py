@@ -5,7 +5,8 @@ from IDM import IDM
 
 def plot_comparison(df, car_id, save_file=None):
     d = df[(df['id'] == car_id)]
-    vf, A, b, s0, T = (17.01441366, 2.11620502, 1.69595889, 1.77614233, 1.46909532)
+    # vf, A, b, s0, T
+    arg = (17.01441366, 2.11620502, 1.69595889, 1.77614233, 1.46909532)
     d['ahat'] = d.apply(lambda row: IDM(arg, row['v'], row['v'] - row['pre_v'], row['delta_d']), axis=1)
     d['vhat'] = d['v'] + d['ahat']
 

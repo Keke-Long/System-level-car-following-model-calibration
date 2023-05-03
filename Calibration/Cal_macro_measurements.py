@@ -1,12 +1,13 @@
 """
 用实际轨迹计算10分钟的中观油耗和travel time
+前600s的结果不要，往后15min一个范围，算3个
 """
 import pandas as pd
 import numpy as np
 import math
 import utm
 
-df = pd.read_csv('Data1_lane_xy_va_pre.csv')
+df = pd.read_csv('../Data/Data3_lane_xy_va_pre.csv')
 
 # 定义指定范围
 Intersection_GPS = [[43.0733, -89.4006],
@@ -52,7 +53,7 @@ def VT_Micro(v,a):
 
 
 # 定义计算车辆进入和离开指定范围内的时间的函数
-def Cal_travel_fuel(group, utm_pts, distance_threshold):
+def Cal_macro_measurements(group, utm_pts, distance_threshold):
     distances = np.sqrt((group['x_utm'] - utm_pts[:, 0])**2 + (group['y_utm'] - utm_pts[:, 1])**2)
     is_within_range = distances < distance_threshold
 
@@ -91,17 +92,17 @@ df['time_period'] = df['t_sec'] // (60*10) #10分钟一个时段
 distance_threshold = 70
 
 # 计算第一个指定范围内的结果
-entry_exit_times_I1 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[0]]), distance_threshold)
+entry_exit_times_I1 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[0]]), distance_threshold)
 avg_travel_time_I1 = entry_exit_times_I1.groupby('time_period')['travel_time'].mean()
 avg_fuel_I1 = entry_exit_times_I1.groupby('time_period')['fuel'].mean()
 
 # 计算第二个指定范围内的结果
-entry_exit_times_I2 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[1]]), distance_threshold)
+entry_exit_times_I2 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[1]]), distance_threshold)
 avg_travel_time_I2 = entry_exit_times_I2.groupby('time_period')['travel_time'].mean()
 avg_fuel_I2 = entry_exit_times_I2.groupby('time_period')['fuel'].mean()
 
 # 计算第三个指定范围内的结果
-entry_exit_times_I3 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[2]]), distance_threshold)
+entry_exit_times_I3 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[2]]), distance_threshold)
 avg_travel_time_I3 = entry_exit_times_I3.groupby('time_period')['travel_time'].mean()
 avg_fuel_I3 = entry_exit_times_I3.groupby('time_period')['fuel'].mean()
 
