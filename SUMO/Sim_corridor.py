@@ -34,50 +34,39 @@ def get_options():
     return options
 
 
-df = pd.DataFrame(columns=['time', 'vehicle', 'x', 'y', 'speed', 'acceleration'])
-veh_info = pd.read_csv("../Data/Veh_info3.csv")
+def simulate_traffic(veh_info, time_simulation=5000):
 
+    options = get_options()
+    if options.nogui:
+        sumoBinary = checkBinary('sumo')
+    else:
+        sumoBinary = checkBinary('sumo-gui')
+    traci.start([sumoBinary, "-c", "ParkSt.sumocfg"])
 
-options = get_options()
-if options.nogui:
-    sumoBinary = checkBinary('sumo')
-else:
-    sumoBinary = checkBinary('sumo-gui')
-traci.start([sumoBinary, "-c", "ParkSt.sumocfg"])
+    traci_route_add()
+    traci_vtype_add() # set CF models
+    route_list = traci.route.getIDList()
+    traci_vehicle_add(veh_info, route_list)
 
-traci_route_add()
-traci_vtype_add() # set CF models
-route_list = traci.route.getIDList()
-traci_vehicle_add(veh_info, route_list)
+    # Simulation
+    df = pd.DataFrame(columns=['time', 'vehicle', 'x', 'y', 'speed', 'acceleration']) # save trj
+    for step in range(0, time_simulation):
+        t = step/10
+        print("\rt = %.1f" % t, end='')
 
-# Simulation
-TIME_SIMULATION = 5000
-for step in range(0,TIME_SIMULATION):
-    t = step/10
-    print("\rt = %.1f" % t, end='')
+        # 遍历每辆车，获取其位置、速度和加速度，并将这些数据添加到 DataFrame 中
+        vehicle_list = traci.vehicle.getIDList()
+        for vehicle_id in vehicle_list:
+            x, y = traci.vehicle.getPosition(vehicle_id)
+            v = traci.vehicle.getSpeed(vehicle_id)
+            a = traci.vehicle.getAcceleration(vehicle_id)
+            df = df.append({'t': t, 'id': vehicle_id, 'x': x, 'y': y, 'v': v, 'a': a}, ignore_index=True)
 
-    # 遍历每辆车，获取其位置、速度和加速度，并将这些数据添加到 DataFrame 中
-    vehicle_list = traci.vehicle.getIDList()
-    for vehicle_id in vehicle_list:
-        x, y = traci.vehicle.getPosition(vehicle_id)
-        v = traci.vehicle.getSpeed(vehicle_id)
-        a = traci.vehicle.getAcceleration(vehicle_id)
-        df = df.append({'t': t, 'id': vehicle_id, 'x': x, 'y': y, 'v': v, 'a': a}, ignore_index=True)
+        traci.simulationStep()
+    traci.close()
+    #df.to_csv('../Data/Simulated_trj_data.csv', index=False)
+    return df
 
-    traci.simulationStep()
-traci.close()
-df.to_csv('../Data/Simulated_trj_data.csv', index=False)
-
-
-"""
-用仿真轨迹计算10分钟的中观油耗和travel time
-"""
-#df = pd.read_csv('../Data/Simulated_trj_data.csv')
-
-# 定义交叉口中心
-Intersection_utm = [[0, 0],
-                    [130, -7],
-                    [258, -14]]
 
 def VT_Micro(v,a):
     PE = np.matrix([[-8.27978, 0.36696, -0.04112, 0.00139],
@@ -103,7 +92,6 @@ def VT_Micro(v,a):
     return fuel[0,0]
 
 
-# 定义计算车辆进入和离开指定范围内的时间的函数
 def Cal_travel_fuel(group, utm_pts, distance_threshold):
     distances = np.sqrt((group['x'] - utm_pts[:, 0])**2 + (group['y'] - utm_pts[:, 1])**2)
     is_within_range = distances < distance_threshold
@@ -135,37 +123,52 @@ def Cal_travel_fuel(group, utm_pts, distance_threshold):
     return pd.Series({'entry_time': entry_time, 'exit_time': exit_time, 'travel_time': travel_time, 'fuel': fuel/len(group['id'].unique())})
 
 
-df['distance_to_I1'] = np.sqrt((df['x'] - Intersection_utm[0][0])**2 + (df['y'] - Intersection_utm[0][1])**2)
-df['distance_to_I2'] = np.sqrt((df['x'] - Intersection_utm[1][0])**2 + (df['y'] - Intersection_utm[1][1])**2)
-df['distance_to_I3'] = np.sqrt((df['x'] - Intersection_utm[2][0])**2 + (df['y'] - Intersection_utm[2][1])**2)
+def analysis_simulated_trj(df):
+    # 定义交叉口中心
+    Intersection_utm = [[0, 0],
+                        [130, -7],
+                        [258, -14]]
 
-df['time_period'] = df['t'] // (60*10) #10分钟一个时段
-distance_threshold = 70
+    df['distance_to_I1'] = np.sqrt((df['x'] - Intersection_utm[0][0])**2 + (df['y'] - Intersection_utm[0][1])**2)
+    df['distance_to_I2'] = np.sqrt((df['x'] - Intersection_utm[1][0])**2 + (df['y'] - Intersection_utm[1][1])**2)
+    df['distance_to_I3'] = np.sqrt((df['x'] - Intersection_utm[2][0])**2 + (df['y'] - Intersection_utm[2][1])**2)
 
-# 计算第一个指定范围内的结果
-entry_exit_times_I1 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[0]]), distance_threshold)
-avg_travel_time_I1 = entry_exit_times_I1.groupby('time_period')['travel_time'].mean()
-avg_fuel_I1 = entry_exit_times_I1.groupby('time_period')['fuel'].mean()
+    df['time_period'] = df['t'] // (60*10) #10分钟一个时段
+    distance_threshold = 70
 
-# 计算第二个指定范围内的结果
-entry_exit_times_I2 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[1]]), distance_threshold)
-avg_travel_time_I2 = entry_exit_times_I2.groupby('time_period')['travel_time'].mean()
-avg_fuel_I2 = entry_exit_times_I2.groupby('time_period')['fuel'].mean()
+    # 计算第一个指定范围内的结果
+    entry_exit_times_I1 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[0]]), distance_threshold)
+    avg_travel_time_I1 = entry_exit_times_I1.groupby('time_period')['travel_time'].mean()
+    avg_fuel_I1 = entry_exit_times_I1.groupby('time_period')['fuel'].mean()
 
-# 计算第三个指定范围内的结果
-entry_exit_times_I3 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[2]]), distance_threshold)
-avg_travel_time_I3 = entry_exit_times_I3.groupby('time_period')['travel_time'].mean()
-avg_fuel_I3 = entry_exit_times_I3.groupby('time_period')['fuel'].mean()
+    # 计算第二个指定范围内的结果
+    entry_exit_times_I2 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[1]]), distance_threshold)
+    avg_travel_time_I2 = entry_exit_times_I2.groupby('time_period')['travel_time'].mean()
+    avg_fuel_I2 = entry_exit_times_I2.groupby('time_period')['fuel'].mean()
 
-# 将结果保存到 CSV 文件
-result_df = pd.DataFrame({
-    # result['start_time'] = result.index * (60 * 10)
-    # result['end_time'] = (result.index + 1) * (60 * 10) - 1
-    'avg_travel_time_I1': round(avg_travel_time_I1, 3),
-    'avg_travel_time_I2': round(avg_travel_time_I2, 3),
-    'avg_travel_time_I3': round(avg_travel_time_I3, 3),
-    'avg_fuel_I1': round(avg_fuel_I1, 3),
-    'avg_fuel_I2': round(avg_fuel_I2, 3),
-    'avg_fuel_I3': round(avg_fuel_I3, 3)
-})
-result_df.to_csv('../Data/Simulated_result.csv', index_label='time_period')
+    # 计算第三个指定范围内的结果
+    entry_exit_times_I3 = df.groupby(['id', 'time_period']).apply(Cal_travel_fuel, np.array([Intersection_utm[2]]), distance_threshold)
+    avg_travel_time_I3 = entry_exit_times_I3.groupby('time_period')['travel_time'].mean()
+    avg_fuel_I3 = entry_exit_times_I3.groupby('time_period')['fuel'].mean()
+
+    # 将结果保存到 CSV 文件
+    result_df = pd.DataFrame({
+        # result['start_time'] = result.index * (60 * 10)
+        # result['end_time'] = (result.index + 1) * (60 * 10) - 1
+        'avg_travel_time_I1': round(avg_travel_time_I1, 3),
+        'avg_travel_time_I2': round(avg_travel_time_I2, 3),
+        'avg_travel_time_I3': round(avg_travel_time_I3, 3),
+        'avg_fuel_I1': round(avg_fuel_I1, 3),
+        'avg_fuel_I2': round(avg_fuel_I2, 3),
+        'avg_fuel_I3': round(avg_fuel_I3, 3)
+    })
+    result_df.to_csv('../Data/Simulated_result.csv', index_label='time_period')
+
+
+def sim_corridor(veh_info):
+    df = simulate_traffic(veh_info, time_simulation=5000)
+    result = analysis_simulated_trj(df)
+    return result
+
+veh_info = pd.read_csv("../Data/Veh_info3.csv")
+sim_corridor(veh_info)
