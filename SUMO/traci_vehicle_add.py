@@ -25,6 +25,6 @@ def traci_vehicle_add(df, route_list):
             end_edge = row['edge_end'].split('_')[1]
             route = 'S'+start_edge+'E'+end_edge
             if route in route_list:
-                print('id',id, 'route', route, "depart_time", depart_time, 'veh_type', veh_type, "depart_Lane", depart_Lane)
+                #print('id',id, 'route', route, "depart_time", depart_time, 'veh_type', veh_type, "depart_Lane", depart_Lane)
                 traci.vehicle.add(id, route, typeID=veh_type, depart=depart_time, departSpeed=12, departLane=depart_Lane)
-
+    print('Finish traci_vehicle_add')

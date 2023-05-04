@@ -13,9 +13,9 @@ import pandas as pd
 import numpy as np
 import math
 
-from traci_route_add import traci_route_add
-from traci_vehicle_add import traci_vehicle_add
-from traci_vtype_add import traci_vtype_add
+from SUMO.traci_route_add import traci_route_add
+from SUMO.traci_vehicle_add import traci_vehicle_add
+from SUMO.traci_vtype_add import traci_vtype_add
 
 if 'SUMO_HOME' in os.environ:
     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
@@ -41,7 +41,7 @@ def simulate_traffic(veh_info, time_simulation=5000):
         sumoBinary = checkBinary('sumo')
     else:
         sumoBinary = checkBinary('sumo-gui')
-    traci.start([sumoBinary, "-c", "ParkSt.sumocfg"])
+    traci.start([sumoBinary, "-c", "../SUMO/ParkSt.sumocfg"])
 
     traci_route_add()
     traci_vtype_add() # set CF models
@@ -133,7 +133,7 @@ def analysis_simulated_trj(df):
     df['distance_to_I2'] = np.sqrt((df['x'] - Intersection_utm[1][0])**2 + (df['y'] - Intersection_utm[1][1])**2)
     df['distance_to_I3'] = np.sqrt((df['x'] - Intersection_utm[2][0])**2 + (df['y'] - Intersection_utm[2][1])**2)
 
-    df['time_period'] = df['t'] // (60*10) #10分钟一个时段
+    df['time_period'] = (df['t']-600) // (60*15) #15分钟一个时段
     distance_threshold = 70
 
     # 计算第一个指定范围内的结果
@@ -171,5 +171,5 @@ def sim_corridor(veh_info):
     return result
 
 
-veh_info = pd.read_csv("../Data/Veh_info3.csv")
-sim_corridor(veh_info)
+# veh_info = pd.read_csv("../Data/Veh_info3.csv")
+# sim_corridor(veh_info)

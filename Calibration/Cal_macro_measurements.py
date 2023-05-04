@@ -6,13 +6,8 @@ import pandas as pd
 import numpy as np
 import math
 import utm
+from tqdm import tqdm
 
-df = pd.read_csv('../Data/Data3_lane_xy_va_pre.csv')
-
-# 定义指定范围
-Intersection_GPS = [[43.0733, -89.4006],
-                    [43.0721, -89.4008],
-                    [43.0710, -89.4008]]
 
 # 经纬度转UTM
 def GPS2UTM(GPS_info):
@@ -24,8 +19,6 @@ def GPS2UTM(GPS_info):
         utm_y = utm_[1]
         utmPts.append([round(utm_x,2) - 300000, round(utm_y,2) - 4770000])
     return utmPts
-Intersection_utm = GPS2UTM(Intersection_GPS)
-# print('Intersection_utm', Intersection_utm)
 
 
 def VT_Micro(v,a):
@@ -84,27 +77,43 @@ def Cal_macro_measurements(group, utm_pts, distance_threshold):
     return pd.Series({'entry_time': entry_time, 'exit_time': exit_time, 'travel_time': travel_time, 'fuel': fuel})
 
 
+df = pd.read_csv('../Data/Data3_lane_xy_va_pre.csv')
+Intersection_GPS = [[43.0733, -89.4006],
+                    [43.0721, -89.4008],
+                    [43.0710, -89.4008]]
+Intersection_utm = GPS2UTM(Intersection_GPS)
+# print('Intersection_utm', Intersection_utm)
+
 df['distance_to_I1'] = np.sqrt((df['x_utm'] - Intersection_utm[0][0])**2 + (df['y_utm'] - Intersection_utm[0][1])**2)
 df['distance_to_I2'] = np.sqrt((df['x_utm'] - Intersection_utm[1][0])**2 + (df['y_utm'] - Intersection_utm[1][1])**2)
 df['distance_to_I3'] = np.sqrt((df['x_utm'] - Intersection_utm[2][0])**2 + (df['y_utm'] - Intersection_utm[2][1])**2)
 
-df['time_period'] = df['t_sec'] // (60*10) #10分钟一个时段
+df['time_period'] = (df['t_sec']-600) // (60*15) #10分钟一个时段
 distance_threshold = 70
 
 # 计算第一个指定范围内的结果
-entry_exit_times_I1 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[0]]), distance_threshold)
-avg_travel_time_I1 = entry_exit_times_I1.groupby('time_period')['travel_time'].mean()
-avg_fuel_I1 = entry_exit_times_I1.groupby('time_period')['fuel'].mean()
+avg_travel_time_I1 = []
+avg_fuel_I1 = []
+for time_period, group in tqdm(df.groupby('time_period'), desc='Computing results for I1'):
+    entry_exit_times_I1 = group.groupby('id').apply(Cal_macro_measurements, np.array([Intersection_utm[0]]), distance_threshold)
+    avg_travel_time_I1.append(entry_exit_times_I1['travel_time'].mean())
+    avg_fuel_I1.append(entry_exit_times_I1['fuel'].mean())
 
 # 计算第二个指定范围内的结果
-entry_exit_times_I2 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[1]]), distance_threshold)
-avg_travel_time_I2 = entry_exit_times_I2.groupby('time_period')['travel_time'].mean()
-avg_fuel_I2 = entry_exit_times_I2.groupby('time_period')['fuel'].mean()
+avg_travel_time_I2 = []
+avg_fuel_I2 = []
+for time_period, group in tqdm(df.groupby('time_period'), desc='Computing results for I2'):
+    entry_exit_times_I2 = group.groupby('id').apply(Cal_macro_measurements, np.array([Intersection_utm[1]]), distance_threshold)
+    avg_travel_time_I2.append(entry_exit_times_I2['travel_time'].mean())
+    avg_fuel_I2.append(entry_exit_times_I2['fuel'].mean())
 
 # 计算第三个指定范围内的结果
-entry_exit_times_I3 = df.groupby(['id', 'time_period']).apply(Cal_macro_measurements, np.array([Intersection_utm[2]]), distance_threshold)
-avg_travel_time_I3 = entry_exit_times_I3.groupby('time_period')['travel_time'].mean()
-avg_fuel_I3 = entry_exit_times_I3.groupby('time_period')['fuel'].mean()
+avg_travel_time_I3 = []
+avg_fuel_I3 = []
+for time_period, group in tqdm(df.groupby('time_period'), desc='Computing results for I3'):
+    entry_exit_times_I3 = group.groupby('id').apply(Cal_macro_measurements, np.array([Intersection_utm[2]]), distance_threshold)
+    avg_travel_time_I3.append(entry_exit_times_I3['travel_time'].mean())
+    avg_fuel_I3.append(entry_exit_times_I3['fuel'].mean())
 
 # 将结果保存到 CSV 文件
 result_df = pd.DataFrame({
@@ -117,4 +126,4 @@ result_df = pd.DataFrame({
     'avg_fuel_I2': avg_fuel_I2,
     'avg_fuel_I3': avg_fuel_I3
 })
-result_df.to_csv('result.csv', index_label='time_period')
+result_df.to_csv('Trj_result.csv', index_label='time_period')
