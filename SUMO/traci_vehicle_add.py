@@ -4,7 +4,6 @@
 """
 
 import traci
-import pandas as pd
 
 
 # 车辆长度判断阈值 7.9
