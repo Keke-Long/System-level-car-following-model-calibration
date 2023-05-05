@@ -2,10 +2,16 @@ import pandas as pd
 import numpy as np
 
 veh_info = pd.read_csv("../Data/Veh_info3.csv")
-veh_info['turn_I1', 'turn_I2', 'turn_I3'] = np.nan
+veh_info['turn_I1'] = np.nan
+veh_info['turn_I2'] = np.nan
+veh_info['turn_I3'] = np.nan
 
-
-"S0E4","S0E6","S0E7","S0E8","S0E10","S4E0","S4E6","S4E7","S4E8","S4E10",
+route_list = {"S0E4":['s','s','s'],"S0E6":['s','l','n'],"S0E7":['s','s','l'],"S0E8":['r','n','n'],"S0E10":['s','s','r'],
+              "S4E0":['s','s','s'],"S4E6":['n','r','s'],"S4E7":['n','n','r'],"S4E8":['l','s','s'],"S4E10":['n','n','l'],
+              "S5E0":['r','n','n'],"S5E4":['l','s','s'],"S5E6":['l','l','n'],"S5E7":['l','s','l'],"S5E8":['s','n','n'],"S5E10":['l','s','r'],
+              "S7E0":['s','s','r'],"S7E4":['n','n','l'],"S7E6":['n','r','r'],"S7E8":['l','s','r'],"S7E10":['n','n','s'],
+              "S9E0":['s','l','n'],"S9E4":['n','r','l'],"S9E6":['n','s','n'],"S9E7":['n','r','l'],"S9E8":['l','l','n'],"S9E10":['n','r','r'],
+              "S10E0":['s','s','l'],"S10E4":['n','n','r'],"S10E6":['n','r','l'],"S10E7":['n','n','s'],"S10E8":['l','s','l']}
 
 for index, row in veh_info.iterrows():
     #id = str(row['id'])
@@ -13,41 +19,11 @@ for index, row in veh_info.iterrows():
         start_edge = row['edge_start'].split('_')[0]
         end_edge = row['edge_end'].split('_')[1]
         route = 'S' + start_edge + 'E' + end_edge
-        if route in route_list:
-            traci.route.add(, ["I0I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I4"])
-            traci.route.add( ["I0I1", "I1M0", "M0I2", "I2I6"])
-            traci.route.add( ["I0I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I7"])
-            traci.route.add( ["I0I1", "I1I8"])
-            traci.route.add( ["I0I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I10"])
+        # 添加车辆转向信息
+        if route in route_list.keys():
+            veh_info.loc[index, 'turn_I1'] = route_list[route][0]
+            veh_info.loc[index, 'turn_I2'] = route_list[route][1]
+            veh_info.loc[index, 'turn_I3'] = route_list[route][2]
 
-            traci.route.add( ["I4I3", "I3I2", "I2I1", "I1I0"])
-            traci.route.add( ["I4I3", "I3I2", "I2I6"])
-            traci.route.add( ["I4I3", "I3I7"])
-            traci.route.add( ["I4I3", "I3I2", "I2I1", "I1I8"])
-            traci.route.add( ["I4I3", "I3I10"])
-
-            traci.route.add("S5E0", ["I5I1", "I1I0"])
-            traci.route.add("S5E4", ["I5I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I4"])
-            traci.route.add("S5E6", ["I5I1", "I1M0", "M0I2", "I2I6"])
-            traci.route.add("S5E7", ["I5I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I7"])
-            traci.route.add("S5E8", ["I5I1", "I1I8"])
-            traci.route.add("S5E10", ["I5I1", "I1M0", "M0I2", "I2M1", "M1I3", "I3I10"])
-
-            traci.route.add("S7E0", ["I7I3", "I3I2", "I2I1", "I1I0"])
-            traci.route.add("S7E4", ["I7I3", "I3I4"])
-            traci.route.add("S7E6", ["I7I3", "I3I2", "I2I6"])
-            traci.route.add("S7E8", ["I7I3", "I3I2", "I2I1", "I1I8"])
-            traci.route.add("S7E10", ["I7I3", "I3I10"])
-
-            traci.route.add("S9E0", ["I9I2", "I2I1", "I1I0"])
-            traci.route.add("S9E4", ["I9I2", "I2M1", "M1I3", "I3I4"])
-            traci.route.add("S9E6", ["I9I2", "I2I6"])
-            traci.route.add("S9E7", ["I9I2", "I2M1", "M1I3", "I3I7"])
-            traci.route.add("S9E8", ["I9I2", "I2I1", "I1I8"])
-            traci.route.add("S9E10", ["I9I2", "I2M1", "M1I3", "I3I10"])
-
-            traci.route.add("S10E0", ["I10I3", "I3I2", "I2I1", "I1I0"])
-            traci.route.add("S10E4", ["I10I3", "I3I4"])
-            traci.route.add("S10E6", ["I10I3", "I3I2", "I2I6"])
-            traci.route.add("S10E7", ["I10I3", "I3I7"])
-            traci.route.add("S10E8", ["I10I3", "I3I2", "I2I1", "I1I8"])
+print(veh_info)
+veh_info.to_csv('../Data/veh_info3.csv', index=False)

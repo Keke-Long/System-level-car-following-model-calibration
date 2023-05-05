@@ -19,6 +19,14 @@ def traci_vehicle_add(df, route_list):
             veh_type = "HV_IDM_l"
             depart_Lane = 0
 
+        # 根据转向确定depart_lane
+        first_intersection = row['edge_start'].split('_')[1]
+        if first_intersection == '1':
+            if row['turn_I1'] == 'l':
+                depart_Lane = 3
+            if row['turn_I1'] == 'r':
+                depart_Lane = 1
+
         if row['edge_start'][0] != 'n' and row['edge_end'][0] != 'n':
             start_edge = row['edge_start'].split('_')[0]
             end_edge = row['edge_end'].split('_')[1]
@@ -26,4 +34,5 @@ def traci_vehicle_add(df, route_list):
             if route in route_list:
                 #print('id',id, 'route', route, "depart_time", depart_time, 'veh_type', veh_type, "depart_Lane", depart_Lane)
                 traci.vehicle.add(id, route, typeID=veh_type, depart=depart_time, departSpeed=12, departLane=depart_Lane)
+
     print('Finish traci_vehicle_add')

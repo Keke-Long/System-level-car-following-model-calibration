@@ -16,7 +16,7 @@ def traci_vtype_add():
     traci.vehicletype.setTau("HV_IDM_s", T)
 
     traci.vehicletype.setShapeClass("HV_IDM_l", "bus")
-    traci.vehicletype.setLength("HV_IDM_l", 22)
+    traci.vehicletype.setLength("HV_IDM_l", 11)
     traci.vehicletype.setMaxSpeed("HV_IDM_l", vf)
     traci.vehicletype.setAccel("HV_IDM_l", A)
     traci.vehicletype.setDecel("HV_IDM_l", b)

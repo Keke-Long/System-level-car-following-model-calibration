@@ -29,7 +29,7 @@ import traci  # noqa
 def get_options():
     optParser = optparse.OptionParser() 
     optParser.add_option("--nogui", action="store_true",
-                         default=True, help="run the commandline version of sumo")
+                         default=False, help="run the commandline version of sumo")
     options, args = optParser.parse_args()
     return options
 def simulate_traffic(veh_info, time_simulation=5000):
@@ -50,9 +50,37 @@ def simulate_traffic(veh_info, time_simulation=5000):
     df = pd.DataFrame(columns=['time', 'vehicle', 'x', 'y', 'speed', 'acceleration']) # save trj
     for step in range(0, time_simulation):
         t = step/10
-        print("\rt = %.1f" % t, end='')
+        print("\rt = %.1f" % t)#, end='')
+
 
         # CAV control
+        # 针对交叉口1得到进口道所有车的：位置速度转向
+        node1_entrance_edge = ['I0I1','I2I1','I5I1']
+        node1_veh_list = []
+        for edge in node1_entrance_edge:
+            veh_on_edge = traci.edge.getLastStepVehicleIDs(edge)
+            node1_veh_list += veh_on_edge
+        node1_veh = pd.DataFrame(columns=['x', 'v', 'a', 'edge'])
+        for id in node1_veh_list:
+            x = traci.vehicle.getLanePosition(id)
+            v = traci.vehicle.getSpeed(id)
+            a = traci.vehicle.getAcceleration(id)
+            edge = traci.vehicle.getRoadID(id)
+            node1_veh.loc[id] = [x, v, a, edge]
+        # 然后计算每一辆车的最早到达时间
+
+        # 计算所有车的实际到达时间，可以FCFS也可以优化一下，烦这个解决一下左转和直行冲突的问题就可以了，
+
+        # 根据实际到达时间确定车辆轨迹
+
+        # 得到当前信号灯状态
+        I1_plan = [45,3,36,3] # I1的四个相位：0东西，1黄灯，2北，3黄灯
+        light = traci.trafficlight.getPhase('I1')
+        print(t, 'light', light)
+        # 确定所有车的到达时间,东西相位的左转要担心冲突，
+        # 针对每一个相位，看哪些车能到，能到的就分配位置，然后下一个相位，直到所有车都确定到达时间，
+
+
 
 
         # Save simulated_trj
@@ -168,5 +196,5 @@ def sim_corridor(veh_info):
     return result
 
 
-# veh_info = pd.read_csv("../Data/Veh_info3.csv")
-# sim_corridor(veh_info)
+veh_info = pd.read_csv("../Data/Veh_info3.csv")
+sim_corridor(veh_info)

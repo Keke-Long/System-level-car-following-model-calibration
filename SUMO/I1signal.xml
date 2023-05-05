@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2023-04-27 23:14:56 by Eclipse SUMO netedit Version 1.16.0
+<!-- generated on 2023-05-04 19:06:03 by Eclipse SUMO netedit Version 1.16.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/netconvertConfiguration.xsd">
 
     <input>
-        <sumo-net-file value="F:\CATS_Lab\2022 ANL-UWisc SOW\ParkSt_SUMO\../../2022%20ANL-UWisc%20SOW/ParkSt_SUMO/ParkSt.net.xml"/>
+        <sumo-net-file value="F:\CATS_Lab\2022 ANL-UWisc SOW\System-level calibration\SUMO\ParkSt.net.xml"/>
     </input>
 
     <processing>

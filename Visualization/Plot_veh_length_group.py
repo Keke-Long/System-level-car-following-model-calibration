@@ -2,9 +2,9 @@
 """
 @author: Keke
 """
+import pandas as pd
 
-
-df = pd.read_csv("Veh_info.csv")
+df = pd.read_csv("../Data/Veh_info3.csv")
 import numpy as np
 import sklearn
 from sklearn.cluster import KMeans
